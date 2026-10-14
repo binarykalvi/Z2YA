@@ -6,7 +6,7 @@ on:
     types: [Zoom]
 
 jobs:
-  dispatch:
+  Zoom:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
