@@ -26,8 +26,33 @@ jobs:
           echo "${{ github.event.client_payload.zoom_url }}" > urls.txt
           cat urls.txt
 
-      - name: Z R DL
-        run: npx --yes zoom-rec-dl@latest
+      - name: Downloader
+        run: |
+          set -eo pipefail
+
+          echo "::group::Clone + install"
+          git clone -q https://github.com/katcinskiy/zoom-downloader.git
+          cd zoom-downloader
+          pip install -q requests 'playwright>=1.64.1'
+          playwright install chromium > /dev/null 2>&1
+          echo "::endgroup::"
+
+          echo "::group::Download recording"
+          python zoom_downloader.py "${{ github.event.client_payload.zoom_url }}" \
+            > /tmp/zoom_dl.log 2>&1 || true
+
+          sed -E 's#https://[^ ]*\.mp4[^ ]*#<mp4-url-redacted>#g' /tmp/zoom_dl.log
+          echo "::endgroup::"
+
+          if [ ! -f zoom_recording.mp4 ]; then
+            echo "::error::zoom_recording.mp4 was not created."
+            echo "--- Full downloader log ---"
+            cat /tmp/zoom_dl.log
+            exit 1
+          fi
+
+          mv zoom_recording.mp4 "${{ github.workspace }}/"
+          echo "MP4 ready: $(du -h "${{ github.workspace }}/zoom_recording.mp4" | cut -f1)"
 
       - name: List downloaded files
         if: always()
