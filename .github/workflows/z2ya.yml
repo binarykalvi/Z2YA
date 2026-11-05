@@ -2,29 +2,23 @@ name: Z2Y
 
 on:
   repository_dispatch:
-    types: [Z2YA]
+    types: [Z T]
 
 jobs:
-  Z2Y:
+  DAU:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
 
       - name: Install
-        run: npm install
-
-      - name: Prep URL
-        run: |
-          echo "${{ github.event.client_payload.zoom_url }}" > urls.txt
-          cat urls.txt
+        run: npm install --no-audit --no-fund
 
       - name: Downloader
         run: |
@@ -34,11 +28,11 @@ jobs:
           git clone -q https://github.com/katcinskiy/zoom-downloader.git
           cd zoom-downloader
           pip install -q requests 'playwright>=1.64.1'
-          playwright install chromium > /dev/null 2>&1
+          playwright install --only-shell chromium > /dev/null 2>&1
           echo "::endgroup::"
 
           echo "::group::Download recording"
-          python zoom_downloader.py "${{ github.event.client_payload.zoom_url }}" \
+          python3 zoom_downloader.py "${{ github.event.client_payload.zoom_url }}" \
             > /tmp/zoom_dl.log 2>&1 || true
 
           sed -E 's#https://[^ ]*\.mp4[^ ]*#<mp4-url-redacted>#g' /tmp/zoom_dl.log
@@ -54,21 +48,12 @@ jobs:
           mv zoom_recording.mp4 "${{ github.workspace }}/"
           echo "MP4 ready: $(du -h "${{ github.workspace }}/zoom_recording.mp4" | cut -f1)"
 
-      - name: List downloaded files
-        if: always()
-        run: find . -name "*.mp4" -not -path "./node_modules/*" || echo "NO MP4 FILES"
-
       - name: Y U
-        if: always()
         env:
-          YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          VIDEO_TITLE:       ${{ github.event.client_payload.meeting_name }} - ${{ github.event.client_payload.record_date }}
+          VIDEO_TITLE: ${{ github.event.client_payload.title }}
           VIDEO_DESCRIPTION: ${{ github.event.client_payload.description }}
-          VIDEO_VISIBILITY:  ${{ github.event.client_payload.visibility }}
-          ZOOM_ACCOUNT_ID:    ${{ secrets.ZOOM_ACCOUNT_ID }}
-          ZOOM_CLIENT_ID:     ${{ secrets.ZOOM_CLIENT_ID }}
-          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
-          ZOOM_MEETING_UUID:  ${{ github.event.client_payload.meeting_uuid }}
+          VIDEO_VISIBILITY: ${{ github.event.client_payload.visibility }}
         run: node upload.js
