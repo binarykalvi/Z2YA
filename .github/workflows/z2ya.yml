@@ -1,12 +1,13 @@
-name: Z2Y
+name: Z2YA
 
 on:
   repository_dispatch:
-    types: [Z T]
+    types: [Z2YA]
 
 jobs:
-  DAU:
+  Z2Y:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
 
     steps:
       - name: Checkout
@@ -34,7 +35,6 @@ jobs:
           echo "::group::Download recording"
           python3 zoom_downloader.py "${{ github.event.client_payload.zoom_url }}" \
             > /tmp/zoom_dl.log 2>&1 || true
-
           sed -E 's#https://[^ ]*\.mp4[^ ]*#<mp4-url-redacted>#g' /tmp/zoom_dl.log
           echo "::endgroup::"
 
@@ -50,10 +50,10 @@ jobs:
 
       - name: Y U
         env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          VIDEO_TITLE: ${{ github.event.client_payload.title }}
+          VIDEO_TITLE:       ${{ github.event.client_payload.meeting_name }} - ${{ github.event.client_payload.record_date }}
           VIDEO_DESCRIPTION: ${{ github.event.client_payload.description }}
-          VIDEO_VISIBILITY: ${{ github.event.client_payload.visibility }}
+          VIDEO_VISIBILITY:  ${{ github.event.client_payload.visibility }}
         run: node upload.js
